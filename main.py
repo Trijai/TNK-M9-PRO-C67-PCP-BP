@@ -19,56 +19,52 @@ video = cv2.VideoCapture("car.mp4")
 
 
 # Define infinite while loop
-while True:
-    # Read the first frame of the video
-    check, image = video.read()
-    if check:
-        image = cv2.resize(image, (0, 0), fx=1, fy=1)
-        dimensions = image.shape[:2]
-        H, W = dimensions
 
-        blob = cv2.dnn.blobFromImage(image, 1/255, (416, 416))
-        yoloNetwork.setInput(blob)
+# Read the first frame of the video
+check, image = video.read()
+if check:
+    image = cv2.resize(image, (0, 0), fx=1, fy=1)
+    dimensions = image.shape[:2]
+    H, W = dimensions
 
-        layerName = yoloNetwork.getUnconnectedOutLayersNames()
-        layerOutputs = yoloNetwork.forward(layerName)
+    blob = cv2.dnn.blobFromImage(image, 1/255, (416, 416))
+    yoloNetwork.setInput(blob)
 
-        boxes = []
-        confidences = []
-        classIds = []
+    layerName = yoloNetwork.getUnconnectedOutLayersNames()
+    layerOutputs = yoloNetwork.forward(layerName)
 
-        for output in layerOutputs:
-            for detection in output:
-                scores = detection[5:]
-                classId = np.argmax(scores)
-                confidence = scores[classId]
+    boxes = []
+    confidences = []
+    classIds = []
 
-                if confidence > confidenceThreshold:
-                    box = detection[0:4] * np.array([W, H, W, H])
-                    (centerX, centerY,  width, height) = box.astype('int')
-                    x = int(centerX - (width/2))
-                    y = int(centerY - (height/2))
+    for output in layerOutputs:
+        for detection in output:
+            scores = detection[5:]
+            classId = np.argmax(scores)
+            confidence = scores[classId]
 
-                    boxes.append([x, y, int(width), int(height)])
-                    confidences.append(float(confidence))
-                    classIds.append(classId)
+            if confidence > confidenceThreshold:
+                box = detection[0:4] * np.array([W, H, W, H])
+                (centerX, centerY,  width, height) = box.astype('int')
+                x = int(centerX - (width/2))
+                y = int(centerY - (height/2))
 
-        indexes = cv2.dnn.NMSBoxes(
-            boxes, confidences, confidenceThreshold, NMSThreshold)
+                boxes.append([x, y, int(width), int(height)])
+                confidences.append(float(confidence))
+                classIds.append(classId)
 
-        for i in range(len(boxes)):
-            if i in indexes:
-                # Write condition to detect the car in the image
-                if labels[classIds[i]] == "car":
-                    x, y, w, h = boxes[i]
-                    color = (255, 0, 0)
-                    cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+    indexes = cv2.dnn.NMSBoxes(
+        boxes, confidences, confidenceThreshold, NMSThreshold)
 
-        cv2.imshow('Moving Car', image)
-        cv2.waitKey(1)
+    for i in range(len(boxes)):
+        if i in indexes:
+            # Write condition to detect the car in the image
+
+            x, y, w, h = boxes[i]
+            color = (255, 0, 0)
+            cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+
+    cv2.imshow('Moving Car', image)
+    cv2.waitKey(1)
 
     # Quit the display window when the spacebar key is pressed
-    key = cv2.waitKey(1)
-    if key == 32:
-        print("Stopped")
-        break
