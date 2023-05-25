@@ -14,57 +14,59 @@ labels = open(labelsPath).read().strip().split('\n')
 
 yoloNetwork = cv2.dnn.readNetFromDarknet(modelConfiguration, modelWeights)
 
-# Read the input video file
-video = cv2.VideoCapture("car.mp4")
-
+# Read the input video file instead of an image
+image = cv2.imread("car.png")
 
 # Define infinite while loop
 
-# Read the first frame of the video
-check, image = video.read()
-if check:
-    image = cv2.resize(image, (0, 0), fx=1, fy=1)
-    dimensions = image.shape[:2]
-    H, W = dimensions
+# Read the first frame of the video which returns two value check, image
 
-    blob = cv2.dnn.blobFromImage(image, 1/255, (416, 416))
-    yoloNetwork.setInput(blob)
+#Run the code only if the video frame is read successfully i.e value of check is True
 
-    layerName = yoloNetwork.getUnconnectedOutLayersNames()
-    layerOutputs = yoloNetwork.forward(layerName)
+image = cv2.resize(image, (0, 0), fx=1, fy=1)
+dimensions = image.shape[:2]
+H, W = dimensions
 
-    boxes = []
-    confidences = []
-    classIds = []
+blob = cv2.dnn.blobFromImage(image, 1/255, (416, 416))
+yoloNetwork.setInput(blob)
 
-    for output in layerOutputs:
-        for detection in output:
-            scores = detection[5:]
-            classId = np.argmax(scores)
-            confidence = scores[classId]
+layerName = yoloNetwork.getUnconnectedOutLayersNames()
+layerOutputs = yoloNetwork.forward(layerName)
 
-            if confidence > confidenceThreshold:
-                box = detection[0:4] * np.array([W, H, W, H])
-                (centerX, centerY,  width, height) = box.astype('int')
-                x = int(centerX - (width/2))
-                y = int(centerY - (height/2))
+boxes = []
+confidences = []
+classIds = []
 
-                boxes.append([x, y, int(width), int(height)])
-                confidences.append(float(confidence))
-                classIds.append(classId)
+for output in layerOutputs:
+    for detection in output:
+        scores = detection[5:]
+        classId = np.argmax(scores)
+        confidence = scores[classId]
 
-    indexes = cv2.dnn.NMSBoxes(
-        boxes, confidences, confidenceThreshold, NMSThreshold)
+        if confidence > confidenceThreshold:
+            box = detection[0:4] * np.array([W, H, W, H])
+            (centerX, centerY,  width, height) = box.astype('int')
+            x = int(centerX - (width/2))
+            y = int(centerY - (height/2))
 
-    for i in range(len(boxes)):
-        if i in indexes:
-            # Write condition to detect the car in the image
+            boxes.append([x, y, int(width), int(height)])
+            confidences.append(float(confidence))
+            classIds.append(classId)
 
-            x, y, w, h = boxes[i]
-            color = (255, 0, 0)
-            cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+indexes = cv2.dnn.NMSBoxes(
+    boxes, confidences, confidenceThreshold, NMSThreshold)
 
-    cv2.imshow('Moving Car', image)
-    cv2.waitKey(1)
+for i in range(len(boxes)):
+    if i in indexes:
+        # Write condition to detect the car in the image
 
-    # Quit the display window when the spacebar key is pressed
+        x, y, w, h = boxes[i]
+        color = (255, 0, 0)
+        cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
+
+
+cv2.imshow('Moving Car', image)
+# Change waitKey to 1
+cv2.waitKey(0)
+
+# Quit the display window when the spacebar key is pressed
